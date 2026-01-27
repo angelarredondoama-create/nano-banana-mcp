@@ -26,9 +26,12 @@ env/
 ENV/
 .venv
 
-# Environment variables
+# Environment variables (but not .env.example)
 .env
 .env.local
+.env.production
+.env.development
+.env.test
 
 # IDE
 .vscode/
