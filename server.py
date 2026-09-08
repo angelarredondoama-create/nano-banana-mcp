@@ -66,9 +66,9 @@ async def generate_image(
             }]
         }],
         "generationConfig": {
-            "responseModalities": ["image"],
-            "aspectRatio": aspect_ratio,
-            "numberOfImages": num_images
+            "responseModalities": ["image"]
+            
+            
         }
     }
     
