@@ -45,12 +45,17 @@ async def generate_image(prompt:str,output_path:Optional[str]=None,aspect_ratio:
     if num_images!=1:return "Error: only num_images=1 is supported; no Gemini request made."
     return await request_image([{"text":prompt}],aspect_ratio,output_path)
 @mcp.tool()
-async def edit_image(prompt:str,reference_image_path:str,output_path:Optional[str]=None,aspect_ratio:str="1:1"):
+async def edit_image(prompt:str,reference_image_path:Optional[str]=None,reference_image_data:Optional[str]=None,reference_image_mime:Optional[str]=None,output_path:Optional[str]=None,aspect_ratio:str="1:1"):
     if aspect_ratio not in VALID_RATIOS:return f"Error: aspect_ratio must be one of {VALID_RATIOS}"
-    try:
-        with open(reference_image_path,"rb") as f:data=base64.b64encode(f.read()).decode("ascii")
-    except OSError:return "Error: reference image is not readable on the server."
-    ext=os.path.splitext(reference_image_path)[1].lower(); mime={".jpg":"image/jpeg",".jpeg":"image/jpeg",".webp":"image/webp"}.get(ext,"image/png")
+    if not reference_image_path and not reference_image_data:return "Error: provide either reference_image_path or reference_image_data."
+    if reference_image_data:
+        data=reference_image_data
+        mime=reference_image_mime or "image/png"
+    else:
+        try:
+            with open(reference_image_path,"rb") as f:data=base64.b64encode(f.read()).decode("ascii")
+        except OSError:return "Error: reference image is not readable on the server."
+        ext=os.path.splitext(reference_image_path)[1].lower(); mime={".jpg":"image/jpeg",".jpeg":"image/jpeg",".webp":"image/webp"}.get(ext,"image/png")
     return await request_image([{"text":prompt},{"inlineData":{"mimeType":mime,"data":data}}],aspect_ratio,output_path)
 if __name__=="__main__":
     if "--http" in sys.argv:mcp.run(transport="streamable-http",host="0.0.0.0",port=int(os.getenv("PORT","8000")),stateless_http=True)
