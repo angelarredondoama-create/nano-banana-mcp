@@ -132,6 +132,6 @@ async def edit_image(
 if __name__ == "__main__":
     if "--http" in sys.argv:
         mcp.run(transport="streamable-http", host="0.0.0.0",
-                port=int(os.getenv("PORT", "8000")), stateless_http=True)
+                port=int(os.getenv("PORT", "8000")))
     else:
         mcp.run(transport="stdio")
