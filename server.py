@@ -4,6 +4,8 @@ from typing import Optional
 import httpx
 from fastmcp import FastMCP
 from mcp.types import ImageContent
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 mcp=FastMCP("Nano Banana Pro")
 log=logging.getLogger("nano_banana")
 logging.basicConfig(level=logging.INFO,stream=sys.stderr)
@@ -11,8 +13,12 @@ GEMINI_API_KEY=os.getenv("GEMINI_API_KEY","")
 MODEL_NAME="gemini-3-pro-image-preview"
 API_ENDPOINT=f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent"
 VALID_RATIOS=("1:1","16:9","9:16","4:3","3:4")
+GEMINI_TIMEOUT_SECONDS=45.0
 @mcp.resource("health://status")
 def health_check()->str:return "OK"
+@mcp.custom_route("/health",methods=["GET"])
+async def http_health_check(request:Request)->PlainTextResponse:
+    return PlainTextResponse("OK")
 @mcp.tool()
 def check_connection()->str:
     """Check MCP connectivity only. Does not call Gemini or spend credits."""
@@ -24,9 +30,11 @@ async def request_image(parts,aspect_ratio,output_path):
     payload={"contents":[{"parts":[{"text":f"Use an aspect ratio of {aspect_ratio}."},*parts]}],"generationConfig":{"responseModalities":["IMAGE"]}}
     try:
         log.info("Gemini request started model=%s",MODEL_NAME)
-        async with httpx.AsyncClient(timeout=120.0) as client:r=await client.post(API_ENDPOINT,headers={"x-goog-api-key":GEMINI_API_KEY},json=payload)
+        async with httpx.AsyncClient(timeout=GEMINI_TIMEOUT_SECONDS) as client:r=await client.post(API_ENDPOINT,headers={"x-goog-api-key":GEMINI_API_KEY},json=payload)
         log.info("Gemini response status=%s",r.status_code)
-        if r.status_code>=400:return f"Error: Gemini HTTP {r.status_code}. Check model availability and project quota."
+        if r.status_code>=400:
+            log.error("Gemini error body: %s",r.text[:1000])
+            return f"Error: Gemini HTTP {r.status_code}: {r.text[:300]}"
         imgs=[]
         for c in r.json().get("candidates",[]):
             for p in (c.get("content") or {}).get("parts",[]):
