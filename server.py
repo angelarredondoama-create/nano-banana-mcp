@@ -228,7 +228,8 @@ if __name__ == "__main__":
     if "--http" in sys.argv:
         # HTTP/SSE mode for remote deployments
         port = int(os.getenv("PORT", "8000"))
-        mcp.run(transport="sse", port=port)
+mcp.run(transport="sse", host="0.0.0.0", port=port)
+        
     else:
         # STDIO mode for local Cursor integration
         mcp.run(transport="stdio")
